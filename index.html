@@ -20,11 +20,11 @@
     <script>
         let hotdogImg;
         let streams = [];
-        const numOfStreams = 300;
+        const numOfStreams = 1000;
         const transparencyThreshold = 128;
 
         function preload() {
-            hotdogImg = loadImage("pepeSad.png");
+            hotdogImg = loadImage("sadPepeFull.png");
         }
 
         function setup() {
@@ -77,6 +77,13 @@ function keyPressed() {
                 this.points.push(createVector(startX, startY));
             }
           
+          calculateAngleAwayFromHotdog(point) {
+    let hotdogCenter = createVector(width / 2, height / 2);
+    let angleAwayFromHotdog = p5.Vector.sub(point, hotdogCenter).heading();
+    return angleAwayFromHotdog;
+}
+
+          
    changeMode(attractToHotdog) {
         this.attractMode = attractToHotdog;
         this.insideHotdog = false;
@@ -92,40 +99,42 @@ function keyPressed() {
                 return false;
             }
 
-    update() {
-        let lastPoint = this.points[this.points.length - 1];
-        
-        if (this.attractMode && !this.insideHotdog) {
-            this.currentAngle = this.calculateAngleTowardsHotdog(lastPoint);
-        } else {
-            let angleVariation = map(noise(this.noiseOffset), 0, 1, -PI / 4, PI / 4);
-            this.currentAngle += angleVariation;
-        }
-        
-        const steps = 2;
-        for (let i = 0; i < steps; i++) {
-            let moveDist = 2;
-            let newPoint = p5.Vector.fromAngle(this.currentAngle).mult(moveDist).add(lastPoint);
-
-            if (this.isOverHotdog(newPoint) && this.attractMode && !this.insideHotdog) {
-                this.insideHotdog = true;  // Stream is now inside the hotdog area
-            } else if (this.isOverHotdog(newPoint) && !this.attractMode) {
-                this.currentAngle += PI;  // Reflect away from the hotdog
-                newPoint = p5.Vector.fromAngle(this.currentAngle).mult(moveDist).add(lastPoint);
-            } else if (!this.isOverHotdog(newPoint) && this.insideHotdog) {
-                this.currentAngle += PI;  // Reflect back into the hotdog
-                newPoint = p5.Vector.fromAngle(this.currentAngle).mult(moveDist).add(lastPoint);
-            }
-
-            this.points.push(newPoint);
-            lastPoint = newPoint;
-        }
-        
-        this.noiseOffset += 0.05;
-        if (this.points.length > 100) {
-            this.points.shift();
-        }
+update() {
+    let lastPoint = this.points[this.points.length - 1];
+    
+    if (this.attractMode && !this.insideHotdog) {
+        this.currentAngle = this.calculateAngleTowardsHotdog(lastPoint);
+    } else {
+        let angleVariation = map(noise(this.noiseOffset), 0, 1, -PI / 4, PI / 4);
+        this.currentAngle += angleVariation;
     }
+    
+    const steps = 1;
+    for (let i = 0; i < steps; i++) {
+        // Increase the move distance when attractMode is enabled
+        let moveDist = this.attractMode ? 6 : 3; // Doubled the move distance in attract mode
+        let newPoint = p5.Vector.fromAngle(this.currentAngle).mult(moveDist).add(lastPoint);
+
+if (this.isOverHotdog(newPoint) && this.attractMode && !this.insideHotdog) {
+    this.insideHotdog = true;  // Stream is now inside the hotdog area
+} else if (this.isOverHotdog(newPoint) && !this.attractMode) {
+    this.currentAngle = this.calculateAngleAwayFromHotdog(lastPoint); // Push away from the hotdog center
+    newPoint = p5.Vector.fromAngle(this.currentAngle).mult(moveDist).add(lastPoint);
+} else if (!this.isOverHotdog(newPoint) && this.insideHotdog) {
+    this.insideHotdog = false; // Stream has exited the hotdog area, no longer need to push out
+}
+
+
+        this.points.push(newPoint);
+        lastPoint = newPoint;
+    }
+    
+    this.noiseOffset += 0.05;
+    if (this.points.length > 100) {
+        this.points.shift();
+    }
+}
+
 
     calculateAngleTowardsHotdog(point) {
         let hotdogCenter = createVector(width / 2, height / 2);
