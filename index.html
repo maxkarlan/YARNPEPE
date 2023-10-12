@@ -102,38 +102,48 @@ function keyPressed() {
 update() {
     let lastPoint = this.points[this.points.length - 1];
     
+    // If attractMode is on and not yet inside the hotdog, move towards it.
     if (this.attractMode && !this.insideHotdog) {
         this.currentAngle = this.calculateAngleTowardsHotdog(lastPoint);
-    } else {
-        let angleVariation = map(noise(this.noiseOffset), 0, 1, -PI / 4, PI / 4);
-        this.currentAngle += angleVariation;
     }
-    
+
+    // Add Perlin noise-based angle variation for both attractMode on and off.
+    let angleVariation = map(noise(this.noiseOffset), 0, 1, -PI / 4, PI / 4);
+    this.currentAngle += angleVariation;
+
     const steps = 1;
     for (let i = 0; i < steps; i++) {
-        // Increase the move distance when attractMode is enabled
-        let moveDist = this.attractMode ? 6 : 3; // Doubled the move distance in attract mode
+        let moveDist = 3;
         let newPoint = p5.Vector.fromAngle(this.currentAngle).mult(moveDist).add(lastPoint);
 
-if (this.isOverHotdog(newPoint) && this.attractMode && !this.insideHotdog) {
-    this.insideHotdog = true;  // Stream is now inside the hotdog area
-} else if (this.isOverHotdog(newPoint) && !this.attractMode) {
-    this.currentAngle = this.calculateAngleAwayFromHotdog(lastPoint); // Push away from the hotdog center
-    newPoint = p5.Vector.fromAngle(this.currentAngle).mult(moveDist).add(lastPoint);
-} else if (!this.isOverHotdog(newPoint) && this.insideHotdog) {
-    this.insideHotdog = false; // Stream has exited the hotdog area, no longer need to push out
-}
-
+        // If over the hotdog and attractMode is off, combine direction away from the hotdog with noise-based variation.
+        if (this.isOverHotdog(newPoint) && !this.attractMode) {
+            let baseAngle = this.calculateAngleAwayFromHotdog(lastPoint);
+            this.currentAngle = baseAngle + angleVariation;
+            newPoint = p5.Vector.fromAngle(this.currentAngle).mult(moveDist).add(lastPoint);
+        } 
+        // If the stream enters the hotdog during attractMode, mark it as inside.
+        else if (this.isOverHotdog(newPoint) && this.attractMode && !this.insideHotdog) {
+            this.insideHotdog = true;
+        } 
+        // If the stream exits the hotdog, mark it as outside.
+        else if (!this.isOverHotdog(newPoint) && this.insideHotdog) {
+            this.insideHotdog = false;
+        }
 
         this.points.push(newPoint);
         lastPoint = newPoint;
     }
-    
-    this.noiseOffset += 0.05;
+
+    // Increase the noise offset for the next frame.
+    this.noiseOffset += 0.1;
+
+    // Keep the stream's length to a maximum of 100 points.
     if (this.points.length > 100) {
         this.points.shift();
     }
 }
+
 
 
     calculateAngleTowardsHotdog(point) {
